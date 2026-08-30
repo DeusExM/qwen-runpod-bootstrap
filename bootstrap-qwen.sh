@@ -48,16 +48,40 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq
 apt-get install -y git curl jq tmux ca-certificates python3 python3-venv python3-pip build-essential
 
-NEED_NODE=1
-if command -v node >/dev/null 2>&1; then
-  NODE_MAJOR="$(node -p 'process.versions.node.split(".")[0]')"
-  [[ "$NODE_MAJOR" -ge 22 ]] && NEED_NODE=0
+
+# Node.js persistant dans /workspace
+NODE_VERSION="${NODE_VERSION:-22.23.2}"
+NODE_ROOT="$BASE/node"
+NODE_ARCHIVE="/tmp/node-v${NODE_VERSION}-linux-x64.tar.xz"
+
+if [[ ! -x "$NODE_ROOT/bin/node" ]]; then
+  echo "Installation Node.js $NODE_VERSION dans $NODE_ROOT..."
+
+  rm -rf "$NODE_ROOT"
+  mkdir -p "$NODE_ROOT"
+
+  curl -fsSL \
+    "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.xz" \
+    -o "$NODE_ARCHIVE"
+
+  tar -xJf "$NODE_ARCHIVE" \
+    --strip-components=1 \
+    -C "$NODE_ROOT"
+
+  rm -f "$NODE_ARCHIVE"
 fi
 
-if [[ "$NEED_NODE" == "1" ]]; then
-  curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
-  apt-get install -y nodejs
-fi
+mkdir -p "$BASE/bin"
+
+ln -sf "$NODE_ROOT/bin/node" "$BASE/bin/node"
+ln -sf "$NODE_ROOT/bin/npm" "$BASE/bin/npm"
+ln -sf "$NODE_ROOT/bin/npx" "$BASE/bin/npx"
+ln -sf "$NODE_ROOT/bin/corepack" "$BASE/bin/corepack"
+
+export PATH="$BASE/bin:$NODE_ROOT/bin:$PATH"
+
+echo "Node: $(node --version)"
+echo "npm: $(npm --version)"
 
 mkdir -p "$BASE/bin" "$BASE/logs" "$BASE/qwen-home" /workspace/.cache/huggingface
 
