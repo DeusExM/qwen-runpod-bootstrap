@@ -97,7 +97,7 @@ case "${1:-once}" in
         ;;
 
     *)
-        echo "Usage: $0 [once|loop]"
+        echo "Usage: $0 [test|once|loop]"
         exit 2
         ;;
 esac
