@@ -1,4 +1,16 @@
 #!/usr/bin/env bash
+set -Eeuo pipefail
+
+BOOTSTRAP_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+BASE="${QWEN_RUNPOD_BASE:-/workspace/qwen-runpod}"
+
+# tmux doit exister AVANT de pouvoir détacher le worker.
+# Sur un Pod vierge, installation minimale rapide.
+if ! command -v tmux >/dev/null 2>&1; then
+    echo "Installation minimale de tmux..."
+    apt-get update -qq
+    DEBIAN_FRONTEND=noninteractive apt-get install -y tmux
+fi
 
 # Auto-detach into tmux so SSH disconnects do not kill the worker
 if [ -z "$TMUX" ] && [ "${QWEN_WORKER_DETACHED:-0}" != "1" ]; then
@@ -19,9 +31,6 @@ if [ -z "$TMUX" ] && [ "${QWEN_WORKER_DETACHED:-0}" != "1" ]; then
 fi
 
 set -Eeuo pipefail
-
-BOOTSTRAP_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-BASE="${QWEN_RUNPOD_BASE:-/workspace/qwen-runpod}"
 
 echo "=== QWEN WORKER START ==="
 
