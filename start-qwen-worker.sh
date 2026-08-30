@@ -1,4 +1,25 @@
 #!/usr/bin/env bash
+
+#!/usr/bin/env bash
+
+# Auto-detach into tmux so SSH disconnects do not kill the worker
+if [ -z "$TMUX" ] && [ "${QWEN_WORKER_DETACHED:-0}" != "1" ]; then
+
+    if tmux has-session -t qwen-worker 2>/dev/null; then
+        echo "✅ qwen-worker tourne déjà."
+        echo "Suivi : tail -f /workspace/qwen-worker.log"
+        exit 0
+    fi
+
+    tmux new-session -d -s qwen-worker \
+        "export QWEN_WORKER_DETACHED=1; cd /workspace/qwen-runpod-bootstrap && ./start-qwen-worker.sh 2>&1 | tee /workspace/qwen-worker.log"
+
+    echo "✅ qwen-worker lancé en arrière-plan."
+    echo "Une coupure SSH ne l'arrêtera plus."
+    echo "Suivi : tail -f /workspace/qwen-worker.log"
+    exit 0
+fi
+
 set -Eeuo pipefail
 
 BOOTSTRAP_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
@@ -120,7 +141,8 @@ if tmux has-session -t qwen-v2 2>/dev/null; then
 fi
 
 echo "✅ ALL CHECKS PASSED"
-tmux new-session -d -s qwen-v2   "bash -lc 'cd "$REPO_DIR" && ./tools/qwen/run-v2.sh'"
+tmux new-session -d -s qwen-v2 \
+  "bash -lc 'cd \"$REPO_DIR\" && ./tools/qwen/run-v2.sh'"
 
 sleep 2
 
