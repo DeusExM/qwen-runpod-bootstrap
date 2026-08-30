@@ -46,7 +46,7 @@ echo "Context: $MAX_MODEL_LEN"
 
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq
-apt-get install -y git curl jq tmux ca-certificates python3 python3-venv python3-pip build-essential
+apt-get install -y git curl jq tmux ca-certificates python3 python3-venv python3-pip build-essential xz-utils
 
 
 # Node.js persistant dans /workspace
