@@ -46,7 +46,43 @@ save_once() {
     ) 9>"$LOCK_FILE"
 }
 
+test_git() {
+    cd "$REPO"
+
+    echo "=== TEST COMMIT + PUSH ==="
+
+    git commit --allow-empty \
+        -m "Qwen autosave preflight $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+
+    timeout 60s env \
+        GIT_ASKPASS="$ASKPASS" \
+        GIT_TERMINAL_PROMPT=0 \
+        git push origin "$BRANCH"
+
+    LOCAL_SHA="$(git rev-parse HEAD)"
+
+    REMOTE_SHA="$(
+        GIT_ASKPASS="$ASKPASS" \
+        GIT_TERMINAL_PROMPT=0 \
+        git ls-remote origin "refs/heads/$BRANCH" |
+        awk '{print $1}'
+    )"
+
+    if [[ "$LOCAL_SHA" != "$REMOTE_SHA" ]]; then
+        echo "❌ TEST GIT FAILED"
+        echo "Local :  $LOCAL_SHA"
+        echo "Remote : $REMOTE_SHA"
+        return 1
+    fi
+
+    echo "✅ AUTOSAVE COMMIT/PUSH TEST OK"
+    echo "SHA: $LOCAL_SHA"
+}
+
 case "${1:-once}" in
+    test)
+        test_git
+        ;;
     once)
         save_once
         ;;
