@@ -27,7 +27,7 @@ BASE="${QWEN_RUNPOD_BASE:-/workspace/qwen-runpod}"
 
 echo "=== QWEN WORKER START ==="
 
-if [[ ! -x "$BASE/bin/qwen" || ! -x "$BASE/venv/bin/vllm" ]]; then
+if [[ ! -x "$BASE/bin/qwen" || ! -x "$BASE/venv/bin/vllm" || ! -x "$BASE/bin/node" ]]; then
   echo "Environnement absent -> bootstrap"
   "$BOOTSTRAP_DIR/bootstrap-qwen.sh"
 fi
