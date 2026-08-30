@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-#!/usr/bin/env bash
-
 # Auto-detach into tmux so SSH disconnects do not kill the worker
 if [ -z "$TMUX" ] && [ "${QWEN_WORKER_DETACHED:-0}" != "1" ]; then
 
