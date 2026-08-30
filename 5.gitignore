@@ -1,0 +1,9 @@
+.env
+.env.*
+*.token
+*.key
+logs/
+*.log
+.DS_Store
+.vscode/
+.idea/
