@@ -50,7 +50,18 @@ apt-get install -y git curl jq tmux ca-certificates python3 python3-venv python3
 
 
 # Node.js persistant dans /workspace
-NODE_VERSION="${NODE_VERSION:-22.23.2}"
+NODE_VERSION="${NODE_VERSION:-$(
+  curl -fsSL https://nodejs.org/dist/index.json \
+  | jq -r '[.[] | select(.version | startswith("v24."))][0].version' \
+  | sed 's/^v//'
+)}"
+
+[[ -n "$NODE_VERSION" && "$NODE_VERSION" != "null" ]] || {
+  echo "ERREUR: impossible de déterminer la version Node 24."
+  exit 12
+}
+
+echo "Node.js sélectionné: $NODE_VERSION"
 NODE_ROOT="$BASE/node"
 NODE_ARCHIVE="/tmp/node-v${NODE_VERSION}-linux-x64.tar.xz"
 
