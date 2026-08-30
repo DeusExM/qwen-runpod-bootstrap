@@ -4,6 +4,35 @@ set -Eeuo pipefail
 BOOTSTRAP_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 BASE="${QWEN_RUNPOD_BASE:-/workspace/qwen-runpod}"
 
+source "$BASE/env.sh"
+source "$BASE/qwen-config.env"
+
+# Installer les scripts maîtres
+echo "Installation des scripts Qwen maîtres..."
+
+install -m 755 \
+  "$BOOTSTRAP_DIR/autosave.sh" \
+  "$BASE/autosave.sh"
+
+install -m 755 \
+  "$BOOTSTRAP_DIR/run-v2.sh" \
+  "$REPO_DIR/tools/qwen/run-v2.sh"
+
+echo "✅ Scripts installés"
+
+# Test réel Git AVANT de charger vLLM
+echo "Test réel commit + push GitHub..."
+
+if ! "$BASE/autosave.sh" test; then
+  echo "❌ COMMIT/PUSH GITHUB IMPOSSIBLE"
+  echo "Qwen et vLLM ne seront PAS lancés."
+  exit 21
+fi
+
+echo "✅ COMMIT/PUSH GITHUB VALIDÉ"
+
+FAILED=0
+
 # tmux doit exister AVANT de pouvoir détacher le worker.
 # Sur un Pod vierge, installation minimale rapide.
 if ! command -v tmux >/dev/null 2>&1; then
