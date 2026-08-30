@@ -6,6 +6,36 @@ BASE="${QWEN_RUNPOD_BASE:-/workspace/qwen-runpod}"
 source "$BASE/env.sh"
 source "$BASE/qwen-config.env"
 
+# ------------------------------------------------------------
+# Installer les scripts maîtres du bootstrap
+# ------------------------------------------------------------
+
+echo "Installation des scripts Qwen maîtres..."
+
+install -m 755 \
+  "$BOOTSTRAP_DIR/autosave.sh" \
+  "$BASE/autosave.sh"
+
+install -m 755 \
+  "$BOOTSTRAP_DIR/run-v2.sh" \
+  "$REPO_DIR/tools/qwen/run-v2.sh"
+
+echo "✅ Scripts installés"
+
+# ------------------------------------------------------------
+# TEST RÉEL Git avant de charger le modèle
+# ------------------------------------------------------------
+
+echo "Test réel commit + push GitHub..."
+
+if ! "$BASE/autosave.sh" test; then
+  echo "❌ COMMIT/PUSH GITHUB IMPOSSIBLE"
+  echo "Qwen et vLLM ne seront PAS lancés."
+  exit 21
+fi
+
+echo "✅ COMMIT/PUSH GITHUB VALIDÉ"
+
 REPO="${REPO_DIR:-/workspace/jeu-tactical-qwen-test}"
 BRANCH="${BRANCH:-qwen-autonomous}"
 INTERVAL="${AUTOSAVE_INTERVAL:-300}"
