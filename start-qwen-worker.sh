@@ -427,8 +427,9 @@ if tmux has-session -t qwen-v2 2>/dev/null; then
         printf 'TOTAL              : %s\n' "$(format_duration "$TOTAL_SECONDS")"
         echo "Qwen autonome prêt : $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
         echo
-    } | tee /workspace/qwen-init-timing.log
-
+    } | tee "$REPO_DIR/QWEN_INIT_TIMING.md"
+    timeout 90s "$BASE/autosave.sh" once || true
+    
     echo "Suivi :"
     echo "tail -f /workspace/qwen-worker.log"
 
