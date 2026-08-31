@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-QWEN_RUNPOD_BASE="${QWEN_RUNPOD_BASE:-/workspace/qwen-runpod}"
+QWEN_RUNPOD_BASE="${QWEN_RUNPOD_BASE:-/opt/qwen-runpod}"
 
 source "$QWEN_RUNPOD_BASE/env.sh"
 source "$QWEN_RUNPOD_BASE/qwen-config.env"
