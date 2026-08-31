@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 
 BOOTSTRAP_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-BASE="${QWEN_RUNPOD_BASE:-/workspace/qwen-runpod}"
+BASE="${QWEN_RUNPOD_BASE:-/opt/qwen-runpod}"
 
 # ------------------------------------------------------------
 # 1. tmux doit exister avant de pouvoir détacher le worker
