@@ -4,6 +4,25 @@ set -Eeuo pipefail
 BOOTSTRAP_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 BASE="${QWEN_RUNPOD_BASE:-/opt/qwen-runpod}"
 
+# Heure de départ conservée même lors du détachement dans tmux.
+WORKER_START_EPOCH="${QWEN_WORKER_START_EPOCH:-$(date +%s)}"
+
+BOOTSTRAP_SECONDS=0
+GIT_TEST_SECONDS=0
+VLLM_SECONDS=0
+QWEN_TEST_SECONDS=0
+
+format_duration() {
+    local total="${1:-0}"
+    printf '%dm %02ds' "$((total / 60))" "$((total % 60))"
+}
+
+echo_phase_time() {
+    local name="$1"
+    local seconds="$2"
+    echo "⏱  $name : $(format_duration "$seconds")"
+}
+
 # ------------------------------------------------------------
 # 1. tmux doit exister avant de pouvoir détacher le worker
 # ------------------------------------------------------------
@@ -27,7 +46,10 @@ if [[ -z "${TMUX:-}" && "${QWEN_WORKER_DETACHED:-0}" != "1" ]]; then
     fi
 
     tmux new-session -d -s qwen-worker \
-        "export QWEN_WORKER_DETACHED=1; cd \"$BOOTSTRAP_DIR\" && ./start-qwen-worker.sh 2>&1 | tee /workspace/qwen-worker.log"
+        "export QWEN_WORKER_DETACHED=1; \
+         export QWEN_WORKER_START_EPOCH=$WORKER_START_EPOCH; \
+         cd \"$BOOTSTRAP_DIR\" && \
+         ./start-qwen-worker.sh 2>&1 | tee /workspace/qwen-worker.log"
 
     echo "✅ qwen-worker lancé en arrière-plan."
     echo "Une coupure SSH ne l'arrêtera plus."
@@ -36,10 +58,14 @@ if [[ -z "${TMUX:-}" && "${QWEN_WORKER_DETACHED:-0}" != "1" ]]; then
 fi
 
 echo "=== QWEN WORKER START ==="
+echo "Début initialisation : $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+echo
 
 # ------------------------------------------------------------
 # 3. Bootstrap complet si le Pod est vierge
 # ------------------------------------------------------------
+
+BOOTSTRAP_START="$(date +%s)"
 
 if [[ ! -x "$BASE/bin/qwen" || \
       ! -x "$BASE/venv/bin/vllm" || \
@@ -49,7 +75,12 @@ if [[ ! -x "$BASE/bin/qwen" || \
     echo "Environnement absent -> bootstrap"
 
     "$BOOTSTRAP_DIR/bootstrap-qwen.sh"
+else
+    echo "✅ Environnement déjà installé -> bootstrap ignoré"
 fi
+
+BOOTSTRAP_SECONDS=$(( $(date +%s) - BOOTSTRAP_START ))
+echo_phase_time "Bootstrap" "$BOOTSTRAP_SECONDS"
 
 # ------------------------------------------------------------
 # 4. Charger la configuration créée par le bootstrap
@@ -207,15 +238,17 @@ echo "✅ Syntaxe scripts valide"
 
 # ------------------------------------------------------------
 # 11. TEST RÉEL : commit + push + comparaison du SHA
-#
-# IMPORTANT :
-# Le modèle n'est toujours PAS chargé à ce stade.
 # ------------------------------------------------------------
 
 echo
 echo "=== TEST RÉEL GIT COMMIT + PUSH ==="
 
+GIT_TEST_START="$(date +%s)"
+
 if ! "$BASE/autosave.sh" test; then
+    GIT_TEST_SECONDS=$(( $(date +%s) - GIT_TEST_START ))
+    echo_phase_time "Test Git" "$GIT_TEST_SECONDS"
+
     echo
     echo "❌ TEST COMMIT/PUSH GITHUB FAILED"
     echo "vLLM et Qwen ne seront PAS lancés."
@@ -223,7 +256,10 @@ if ! "$BASE/autosave.sh" test; then
     exit 25
 fi
 
+GIT_TEST_SECONDS=$(( $(date +%s) - GIT_TEST_START ))
+
 echo "✅ COMMIT/PUSH GITHUB VALIDÉ"
+echo_phase_time "Test Git" "$GIT_TEST_SECONDS"
 
 # ------------------------------------------------------------
 # 12. Démarrer vLLM seulement après validation Git
@@ -231,6 +267,8 @@ echo "✅ COMMIT/PUSH GITHUB VALIDÉ"
 
 echo
 echo "=== VLLM ==="
+
+VLLM_START="$(date +%s)"
 
 if curl -fsS \
     "http://${VLLM_HOST}:${VLLM_PORT}/v1/models" \
@@ -268,12 +306,17 @@ else
     done
 
     if [[ "$READY" != "1" ]]; then
+        VLLM_SECONDS=$(( $(date +%s) - VLLM_START ))
+        echo_phase_time "Chargement vLLM/modèle" "$VLLM_SECONDS"
+
         echo "❌ vLLM non prêt après 15 min."
         tail -60 "$BASE/logs/vllm-worker.log" 2>/dev/null || true
         echo "Le Pod reste disponible pour diagnostic."
         exit 30
     fi
 fi
+
+VLLM_SECONDS=$(( $(date +%s) - VLLM_START ))
 
 SERVED_MODEL="$(
     curl -fsS \
@@ -287,6 +330,7 @@ if [[ -z "$SERVED_MODEL" ]]; then
 fi
 
 echo "✅ Modèle servi : $SERVED_MODEL"
+echo_phase_time "Chargement vLLM/modèle" "$VLLM_SECONDS"
 
 # ------------------------------------------------------------
 # 13. Micro-test réel Qwen -> vLLM
@@ -294,6 +338,8 @@ echo "✅ Modèle servi : $SERVED_MODEL"
 
 echo
 echo "=== MICRO-TEST QWEN ==="
+
+QWEN_TEST_START="$(date +%s)"
 
 set +e
 
@@ -315,7 +361,10 @@ QWEN_TEST_STATUS=$?
 
 set -e
 
+QWEN_TEST_SECONDS=$(( $(date +%s) - QWEN_TEST_START ))
+
 echo "$QWEN_TEST_OUTPUT"
+echo_phase_time "Micro-test Qwen" "$QWEN_TEST_SECONDS"
 
 if [[ "$QWEN_TEST_STATUS" -ne 0 ]] || \
    ! grep -q "QWEN_WORKER_OK" <<< "$QWEN_TEST_OUTPUT"; then
@@ -359,12 +408,30 @@ tmux new-session -d -s qwen-v2 \
 sleep 2
 
 if tmux has-session -t qwen-v2 2>/dev/null; then
+
+    TOTAL_SECONDS=$(( $(date +%s) - WORKER_START_EPOCH ))
+
     echo "✅ qwen-v2 lancé."
     echo
     tmux ls
     echo
+
+    {
+        echo
+        echo "=== TEMPS INITIALISATION ==="
+        printf 'Bootstrap          : %s\n' "$(format_duration "$BOOTSTRAP_SECONDS")"
+        printf 'Test Git           : %s\n' "$(format_duration "$GIT_TEST_SECONDS")"
+        printf 'Chargement vLLM    : %s\n' "$(format_duration "$VLLM_SECONDS")"
+        printf 'Micro-test Qwen    : %s\n' "$(format_duration "$QWEN_TEST_SECONDS")"
+        echo "--------------------------------"
+        printf 'TOTAL              : %s\n' "$(format_duration "$TOTAL_SECONDS")"
+        echo "Qwen autonome prêt : $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+        echo
+    } | tee /workspace/qwen-init-timing.log
+
     echo "Suivi :"
     echo "tail -f /workspace/qwen-worker.log"
+
 else
     echo "❌ qwen-v2 s'est terminé immédiatement."
     exit 70
