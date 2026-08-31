@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-BASE="${QWEN_RUNPOD_BASE:-/workspace/qwen-runpod}"
+BASE="${QWEN_RUNPOD_BASE:-/opt/qwen-runpod}"
 VLLM_VERSION="${VLLM_VERSION:-0.28.0}"
 QWEN_CODE_VERSION="${QWEN_CODE_VERSION:-0.22.3}"
 
