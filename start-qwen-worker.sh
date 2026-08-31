@@ -45,11 +45,13 @@ if [[ -z "${TMUX:-}" && "${QWEN_WORKER_DETACHED:-0}" != "1" ]]; then
         exit 0
     fi
 
+    mkdir -p "$BASE/logs"
+    
     tmux new-session -d -s qwen-worker \
         "export QWEN_WORKER_DETACHED=1; \
          export QWEN_WORKER_START_EPOCH=$WORKER_START_EPOCH; \
          cd \"$BOOTSTRAP_DIR\" && \
-         ./start-qwen-worker.sh 2>&1 | tee /opt/qwen-runpod/logs/qwen-worker.log"
+         ./start-qwen-worker.sh 2>&1 | tee \"$BASE/logs/qwen-worker.log\""
 
     echo "✅ qwen-worker lancé en arrière-plan."
     echo "Une coupure SSH ne l'arrêtera plus."
