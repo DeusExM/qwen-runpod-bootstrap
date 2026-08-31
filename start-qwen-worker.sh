@@ -41,7 +41,7 @@ if [[ -z "${TMUX:-}" && "${QWEN_WORKER_DETACHED:-0}" != "1" ]]; then
 
     if tmux has-session -t qwen-worker 2>/dev/null; then
         echo "✅ qwen-worker tourne déjà."
-        echo "Suivi : tail -f /workspace/qwen-worker.log"
+        echo "Suivi : tail -f /opt/qwen-runpod/logs/qwen-worker.log"
         exit 0
     fi
 
@@ -49,11 +49,11 @@ if [[ -z "${TMUX:-}" && "${QWEN_WORKER_DETACHED:-0}" != "1" ]]; then
         "export QWEN_WORKER_DETACHED=1; \
          export QWEN_WORKER_START_EPOCH=$WORKER_START_EPOCH; \
          cd \"$BOOTSTRAP_DIR\" && \
-         ./start-qwen-worker.sh 2>&1 | tee /workspace/qwen-worker.log"
+         ./start-qwen-worker.sh 2>&1 | tee /opt/qwen-runpod/logs/qwen-worker.log"
 
     echo "✅ qwen-worker lancé en arrière-plan."
     echo "Une coupure SSH ne l'arrêtera plus."
-    echo "Suivi : tail -f /workspace/qwen-worker.log"
+    echo "Suivi : tail -f /opt/qwen-runpod/logs/qwen-worker.log"
     exit 0
 fi
 
@@ -431,7 +431,7 @@ if tmux has-session -t qwen-v2 2>/dev/null; then
     timeout 90s "$BASE/autosave.sh" once || true
     
     echo "Suivi :"
-    echo "tail -f /workspace/qwen-worker.log"
+    echo "tail -f /opt/qwen-runpod/logs/qwen-worker.log"
 
 else
     echo "❌ qwen-v2 s'est terminé immédiatement."
