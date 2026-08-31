@@ -14,7 +14,9 @@ REASONING_PARSER="${REASONING_PARSER:-qwen3}"
 TOOL_CALL_PARSER="${TOOL_CALL_PARSER:-qwen3_coder}"
 
 REPO_URL="${REPO_URL:-https://github.com/DeusExM/jeu-tactical-qwen-test.git}"
-REPO_DIR="${REPO_DIR:-/workspace/jeu-tactical-qwen-test}"
+DATA_ROOT="${QWEN_DATA_ROOT:-/opt/qwen-data}"
+REPO_DIR="${REPO_DIR:-$DATA_ROOT/jeu-tactical-qwen-test}"
+HF_CACHE="${HF_CACHE:-$DATA_ROOT/huggingface}"
 BRANCH="${BRANCH:-qwen-autonomous}"
 
 WORK_MINUTES="${WORK_MINUTES:-62}"
@@ -95,7 +97,7 @@ export PATH="$BASE/bin:$NODE_ROOT/bin:$PATH"
 echo "Node: $(node --version)"
 echo "npm: $(npm --version)"
 
-mkdir -p "$BASE/bin" "$BASE/logs" "$BASE/qwen-home" /workspace/.cache/huggingface
+mkdir -p "$BASE/bin" "$BASE/logs" "$BASE/qwen-home" "$HF_CACHE"
 
 if [[ ! -x "$BASE/venv/bin/vllm" ]]; then
   python3 -m venv "$BASE/venv"
@@ -132,7 +134,7 @@ EOF
 cat > "$BASE/env.sh" <<EOF
 export QWEN_RUNPOD_BASE="$BASE"
 export QWEN_HOME="$BASE/qwen-home"
-export HF_HOME="/workspace/.cache/huggingface"
+export HF_HOME="$HF_CACHE"
 export PATH="$BASE/bin:$BASE/venv/bin:\$PATH"
 source "$BASE/qwen-config.env"
 export OPENAI_API_KEY="local-vllm"
