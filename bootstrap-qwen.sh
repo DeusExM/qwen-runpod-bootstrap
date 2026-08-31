@@ -76,8 +76,9 @@ if [[ ! -x "$NODE_ROOT/bin/node" ]]; then
     -o "$NODE_ARCHIVE"
 
   tar -xJf "$NODE_ARCHIVE" \
-    --strip-components=1 \
-    -C "$NODE_ROOT"
+      --no-same-owner \
+      --strip-components=1 \
+      -C "$NODE_ROOT"
 
   rm -f "$NODE_ARCHIVE"
 fi
