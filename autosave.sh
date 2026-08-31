@@ -6,7 +6,8 @@ BASE="${QWEN_RUNPOD_BASE:-/opt/qwen-runpod}"
 source "$BASE/env.sh"
 source "$BASE/qwen-config.env"
 
-REPO="${REPO_DIR:-/workspace/jeu-tactical-qwen-test}"
+DATA_ROOT="${QWEN_DATA_ROOT:-/opt/qwen-data}"
+REPO="${REPO_DIR:-$DATA_ROOT/jeu-tactical-qwen-test}"
 BRANCH="${BRANCH:-qwen-autonomous}"
 INTERVAL="${AUTOSAVE_INTERVAL:-300}"
 
